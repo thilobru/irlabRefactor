@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Elasticsearch Service (from previous example)
+  elasticsearch:
+    image: elasticsearch:8.13.4 # Use the same version as before or desired
+    container_name: es01 # Optional: give it a fixed name
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false # For local dev ONLY
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m # Adjust heap size as needed
+    ports:
+      - "9200:9200" # Map host port 9200 to container port 9200
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data # Persist ES data
+
+  # Your Python Application Service
+  app:
+    build: . # Build the image from the Dockerfile in the current directory
+    container_name: irlab_app # Optional: give it a fixed name
+    depends_on:
+      - elasticsearch # Wait for elasticsearch to start (basic check)
+    volumes:
+      # Mount volumes to access data/config/results/models from host
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./results:/app/results
+      - ./models:/app/models
+    # Keep the container running (optional, useful for exec)
+    # Or override command when running specific tasks
+    # command: tail -f /dev/null # Keeps container alive
+    # OR define entrypoint/cmd in Dockerfile if preferred
+
+volumes:
+  es_data: # Define the volume for ES data persistence
+    driver: local
+
