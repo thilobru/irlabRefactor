@@ -1,0 +1,18 @@
+paths:
+  raw_data_dir: "data/raw/"
+  html_titles_tsv: "data/raw/htmlTitlesNEW.tsv"
+  processed_data_dir: "data/processed/"
+  results_dir: "results/"
+  # Add other necessary paths if tested functions require them
+
+elasticsearch:
+  hosts: ["localhost"]
+  port: 9200
+  index_name: "test_index"
+
+preprocessing:
+  lemmatize: true
+  remove_stopwords: true
+  language: "english"
+
+# Add other sections as needed by tests

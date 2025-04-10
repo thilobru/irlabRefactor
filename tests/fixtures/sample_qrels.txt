@@ -1,0 +1,5 @@
+T1 0 doc1 1
+T1 0 doc3 0
+T1 0 doc4 2
+T2 0 doc2 1
+T2 0 doc5 1

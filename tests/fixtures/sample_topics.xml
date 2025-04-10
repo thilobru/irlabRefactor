@@ -1,0 +1,14 @@
+<topics>
+  <topic number="T1" type="faceted">
+    <query>first query</query>
+    <description>description 1</description>
+    <narrative>narrative 1</narrative>
+    <stance>pro</stance>
+  </topic>
+  <topic number="T2" type="faceted">
+    <query>second query text</query>
+    <description>description 2</description>
+    <narrative>narrative 2</narrative>
+    <stance>con</stance>
+  </topic>
+</topics>
