@@ -9,7 +9,7 @@ env/
 .env/
 tests/
 *.log
-data/ # Exclude large data from image if not needed at runtime
+/data/ # Exclude large data from image if not needed at runtime
 results/
 models/ # Exclude models if large/downloaded separately
 .pytest_cache/

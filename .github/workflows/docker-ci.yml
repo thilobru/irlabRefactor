@@ -1,0 +1,67 @@
+name: Docker Build, Test, and Push
+
+on:
+  push:
+    branches: [ main ] # Push image only on merges to main
+  pull_request:
+    branches: [ main ] # Build and test on PRs to main
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest # Use a Linux runner
+
+    services:
+      # Start an Elasticsearch container for tests that might need it
+      elasticsearch:
+        image: elasticsearch:8.13.4
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: -Xms256m -Xmx256m # Keep it small for CI
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      # This step is only needed if you intend to push the image
+      if: github.event_name != 'pull_request' # Don't login on PR builds
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }} # Use built-in token for GHCR
+
+    - name: Build and potentially push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        # Push only if it's a push event to the main branch
+        push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        # Tag image for local use and for pushing
+        tags: |
+          irlab-app:latest
+          ghcr.io/${{ github.repository }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run tests using Docker Compose
+      run: |
+        # Ensure config points to the service container if tests need ES access
+        # (Modify config if necessary before running tests)
+        # Example: sed -i 's/hosts: \["localhost"\]/hosts: \["elasticsearch"\]/' config/config.yaml
+        # Run tests using the locally built image (tagged as irlab-app:latest)
+        # Note: docker-compose should use the image built in the previous step
+        docker-compose run --rm app pytest tests/
+
