@@ -7,14 +7,12 @@ from unittest.mock import patch, mock_open, MagicMock
 # Assume src is in PYTHONPATH or adjust import path accordingly
 from src.utils import load_config, ensure_dir, get_image_id_from_path, safe_load_tsv
 
-# Define the path to the fixtures directory relative to this test file
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '..', 'fixtures')
-
 # --- Fixtures ---
 @pytest.fixture
 def sample_config_path():
-    """Fixture providing the path to the sample config file."""
-    return os.path.join(FIXTURES_DIR, 'sample_config.yaml')
+    """Fixture providing the absolute path to the sample config file."""
+    # Construct path relative to project root (where pytest runs)
+    return os.path.abspath('tests/fixtures/sample_config.yaml')
 
 @pytest.fixture
 def expected_config_data():
@@ -42,6 +40,8 @@ def expected_config_data():
 
 def test_load_config_success(sample_config_path, expected_config_data):
     """Test loading a valid YAML config file."""
+    # Removed the os.path.exists check here - load_config handles it
+    # This will raise FileNotFoundError if the fixture path is wrong or file doesn't exist
     config = load_config(sample_config_path)
     assert config == expected_config_data
 
@@ -89,12 +89,14 @@ def test_safe_load_tsv_success(mock_read_csv, mock_exists):
     dummy_df = pd.DataFrame({'col1': [1, 2], 'col2': ['a', 'b']})
     mock_read_csv.return_value = dummy_df
     file_path = "/fake/data.tsv"
-
+    # Pass specific kwargs used by safe_load_tsv defaults
     df = safe_load_tsv(file_path, expected_columns=['col1'], keep_default_na=False, na_values=[''])
 
     mock_exists.assert_called_once_with(file_path)
+    # Assert that read_csv was called with the expected arguments
     mock_read_csv.assert_called_once_with(file_path, sep='\t', keep_default_na=False, na_values=[''])
     pd.testing.assert_frame_equal(df, dummy_df)
+
 
 @patch('os.path.exists')
 def test_safe_load_tsv_file_not_found(mock_exists):
@@ -114,8 +116,11 @@ def test_safe_load_tsv_missing_columns(mock_read_csv, mock_exists):
     mock_read_csv.return_value = dummy_df
     file_path = "/fake/data.tsv"
 
+    # Pass specific kwargs used by safe_load_tsv defaults
     with pytest.raises(ValueError, match="Missing columns"): # Check error message
         safe_load_tsv(file_path, expected_columns=['col1', 'col2'], keep_default_na=False, na_values=[''])
 
     mock_exists.assert_called_once_with(file_path)
+    # Assert that read_csv was called with the expected arguments
     mock_read_csv.assert_called_once_with(file_path, sep='\t', keep_default_na=False, na_values=[''])
+

@@ -7,17 +7,17 @@ from unittest.mock import patch, mock_open, MagicMock
 # Assume src is in PYTHONPATH or adjust import path accordingly
 from src.data_loader import load_tsv, load_topics, load_qrels
 
-# Define the path to the fixtures directory relative to this test file
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), '..', 'fixtures')
-
 # --- Fixtures ---
 @pytest.fixture
 def topics_fixture_path():
-    return os.path.join(FIXTURES_DIR, 'sample_topics.xml')
+    # Construct path relative to project root (where pytest runs)
+    # Use os.path.abspath to be safe
+    return os.path.abspath('tests/fixtures/sample_topics.xml')
 
 @pytest.fixture
 def qrels_fixture_path():
-    return os.path.join(FIXTURES_DIR, 'sample_qrels.txt')
+    # Construct path relative to project root
+    return os.path.abspath('tests/fixtures/sample_qrels.txt')
 
 # --- Test Functions ---
 
@@ -36,12 +36,14 @@ def test_load_tsv(mock_safe_load):
 
 def test_load_topics_success(topics_fixture_path):
     """Test loading topics from a sample XML file."""
+    # Removed the os.path.exists check here - load_topics handles it
     expected_topics = {
         'T1': {'query': 'first query', 'description': 'description 1', 'narrative': 'narrative 1', 'stance': 'pro'},
         'T2': {'query': 'second query text', 'description': 'description 2', 'narrative': 'narrative 2', 'stance': 'con'}
     }
+    # This will raise FileNotFoundError if the fixture path is wrong or file doesn't exist
     topics = load_topics(topics_fixture_path)
-    assert topics == expected_topics
+    assert topics == expected_topics # Fails if file not found and {} is returned
 
 @patch('os.path.exists')
 def test_load_topics_file_not_found(mock_exists):
@@ -62,12 +64,14 @@ def test_load_topics_parse_error(mock_exists, mock_parse):
 
 def test_load_qrels_success(qrels_fixture_path):
     """Test loading qrels from a sample text file."""
+    # Removed the os.path.exists check here - load_qrels handles it
     expected_qrels = {
         'T1': {'doc1': 1, 'doc3': 0, 'doc4': 2},
         'T2': {'doc2': 1, 'doc5': 1}
     }
+     # This will raise FileNotFoundError if the fixture path is wrong or file doesn't exist
     qrels = load_qrels(qrels_fixture_path)
-    assert qrels == expected_qrels
+    assert qrels == expected_qrels # Fails if file not found and {} is returned
 
 @patch('os.path.exists')
 def test_load_qrels_file_not_found(mock_exists):

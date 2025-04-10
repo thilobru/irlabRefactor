@@ -9,7 +9,7 @@ from src.evaluation import precision_at_k, average_precision, dcg_at_k, ndcg_at_
 def eval_data():
     """Provides common data for evaluation metric tests."""
     return {
-        'retrieved_ids': ['doc1', 'doc2', 'doc3', 'doc4', 'doc5'],
+        'retrieved_ids': ['doc1', 'doc2', 'doc3', 'doc4', 'doc5'], # Length 5
         'relevant_ids': ['doc1', 'doc3', 'doc6'], # doc6 is relevant but not retrieved
         'relevant_grades': {'doc1': 2, 'doc3': 1, 'doc6': 3, 'doc2': 0, 'doc7': 1} # Includes non-retrieved, zero grades
     }
@@ -20,7 +20,7 @@ def eval_data():
     (5, 2/5), # doc1, doc3 relevant in top 5
     (1, 1/1), # doc1 is relevant
     (0, 0.0),
-    (10, 2/5) # k > retrieved length
+    (10, 2/10) # k=10 > retrieved length(5). 2 relevant in top 5 (which is top 10). Denominator is k=10. Expected = 0.2
 ])
 def test_precision_at_k(eval_data, k, expected):
     assert precision_at_k(eval_data['retrieved_ids'], eval_data['relevant_ids'], k) == pytest.approx(expected)
@@ -96,8 +96,10 @@ def test_calculate_metrics(eval_data):
 
     # Calculate expected values based on previous tests
     expected_p3 = 2/3
-    relevant_ids_for_ap = [doc_id for doc_id, grade in qrels_for_topic.items() if grade > 0]
-    expected_map = (1.0 + 2/3) / len(relevant_ids_for_ap) if relevant_ids_for_ap else 0.0 # AP for this topic
+    relevant_ids_for_ap = [doc_id for doc_id, grade in qrels_for_topic.items() if grade > 0] # doc1, doc3, doc6, doc7 -> 4 relevant
+    # Ranks of relevant retrieved: 1 (doc1), 3 (doc3)
+    expected_map = (1.0 + 2/3) / len(relevant_ids_for_ap) if relevant_ids_for_ap else 0.0 # AP = (P@1 + P@3) / 4 = 5/12
+
     ideal_dcg3 = 3.0 / np.log2(2) + 2.0 / np.log2(3) + 1.0 / np.log2(4)
     actual_dcg3 = 2.0 / np.log2(2) + 0.0 / np.log2(3) + 1.0 / np.log2(4)
     expected_ndcg3 = actual_dcg3 / ideal_dcg3 if ideal_dcg3 > 0 else 0.0
