@@ -1,0 +1,163 @@
+# Configuration for the IRLab Refactored Project
+
+# --- File Paths ---
+paths:
+  # Input data
+  raw_data_dir: "data/raw/"
+  html_titles_tsv: "data/raw/htmlTitlesNEW.tsv" # Assumed filename, adjust if needed
+  html_titles_stance_tsv: "data/raw/htmlTitlesStanceNEW.tsv" # Assumed filename
+  image_folder: "data/raw/images/" # Folder containing images for OCR/Clustering
+  topics_xml: "data/raw/topics.xml" # TREC-style topics file
+  relevance_judgments: "data/raw/qrels.txt" # Assumed relevance judgments file (TREC format: topic_id 0 doc_id relevance) - NEEDED FOR EVALUATION
+
+  # Processed data (intermediate files)
+  processed_data_dir: "data/processed/"
+  processed_titles: "data/processed/titles_processed.tsv"
+  ocr_output_dir: "data/processed/ocr/" # Directory to save individual OCR .txt files
+  ocr_combined_tsv: "data/processed/ocr_combined.tsv" # Optional: Combined OCR results
+  sentiment_dict_output: "data/processed/sentiment_dictionary.tsv" # Output from AFINN/VAD
+  sentiment_bert_output: "data/processed/sentiment_bert.tsv" # Output from BERT classification
+  image_features_output: "data/processed/image_features.pkl" # Saved image features
+  image_clusters_output: "data/processed/image_clusters.tsv" # Output from clustering (doc_id, cluster_id)
+  clustered_image_dirs: "data/processed/clustered_images/" # Base dir for saving example images per cluster
+
+  # Model paths
+  bert_model_dir: "models/bertiment/" # Directory containing saved BERT model
+  bert_model_save_path: "models/bertiment_trained/" # Path to save newly trained BERT model
+  imdb_data_path: "data/raw/aclImdb_v1.tar.gz" # Path to IMDB dataset for training
+
+  # Output paths
+  results_dir: "results/"
+  evaluation_output_dir: "results/evaluation/" # Directory for evaluation scores (TSV/CSV)
+  plot_output_dir: "results/plots/" # Directory for generated plots
+
+# --- Elasticsearch Configuration ---
+elasticsearch:
+  hosts: ["localhost"] # Or your Elasticsearch host(s)
+  port: 9200
+  # Use cloud_id and api_key/basic_auth for Elastic Cloud or secured clusters
+  # cloud_id: "YOUR_CLOUD_ID"
+  # api_key: ["YOUR_API_KEY_ID", "YOUR_API_KEY_SECRET"]
+  # basic_auth: ["elastic", "YOUR_PASSWORD"]
+  index_name: "irlab_refactored_index"
+  timeout: 60 # Request timeout in seconds
+
+# --- Preprocessing Parameters ---
+preprocessing:
+  lemmatize: true
+  remove_stopwords: true
+  language: "english"
+
+# --- OCR Parameters ---
+ocr:
+  language: "eng" # Tesseract language code
+  preprocessing:
+    apply: true
+    grayscale: true
+    threshold: true # Apply Otsu's thresholding
+    remove_noise: true # Apply median blur
+
+# --- Sentiment Analysis Parameters ---
+sentiment:
+  afinn_lexicon_path: "path/to/AFINN-111.txt" # Adjust path if needed
+  vad_lexicon_path: "path/to/NRC-VAD-Lexicon.txt" # Adjust path if needed
+  bert_batch_size: 32
+
+# --- Image Clustering Parameters ---
+clustering:
+  feature_extractor: "vgg16" # Or other supported model
+  n_clusters: 14
+  pca_dimensions: 10 # Set to 0 or null to disable PCA
+  save_example_images: true # Save example images for each cluster
+
+# --- BERT Training Parameters ---
+bert_training:
+  model_name: "bert-base-uncased"
+  batch_size: 16
+  epochs: 1 # Adjust as needed
+  learning_rate: 2e-5
+
+# --- Evaluation Parameters ---
+evaluation:
+  # Define different evaluation runs/configurations here
+  # Each key is a name for the run (used with --evaluate NAME)
+  # 'query_fields': List of fields to search in ES
+  # 'use_sentiment_filter': bool (filter by positive/negative based on topic)
+  # 'sentiment_field': Field containing sentiment score ('sentiment_dict' or 'sentiment_bert')
+  # 'use_cluster_boost': bool (boost results based on cluster relevance)
+  # 'cluster_field': Field containing cluster ID
+  # 'query_preprocessing': bool (apply preprocessing to query)
+  # 'top_k': Number of results to retrieve from ES
+  # 'metrics': List of metrics to calculate (e.g., 'precision@10', 'ndcg@10', 'map')
+
+  configs:
+    baseline:
+      query_fields: ["text_content"] # Adjust field name based on ES mapping
+      use_sentiment_filter: false
+      use_cluster_boost: false
+      query_preprocessing: false
+      top_k: 100
+      metrics: ["precision@10", "map", "ndcg@10"]
+
+    baseline_ocr:
+      query_fields: ["text_content", "ocr_text"] # Adjust field names
+      use_sentiment_filter: false
+      use_cluster_boost: false
+      query_preprocessing: false
+      top_k: 100
+      metrics: ["precision@10", "map", "ndcg@10"]
+
+    sentiment_dict:
+      query_fields: ["text_content"]
+      use_sentiment_filter: true
+      sentiment_field: "sentiment_dict_score" # Adjust field name
+      use_cluster_boost: false
+      query_preprocessing: false
+      top_k: 100
+      metrics: ["precision@10", "map", "ndcg@10"]
+
+    sentiment_dict_ocr:
+      query_fields: ["text_content", "ocr_text"]
+      use_sentiment_filter: true
+      sentiment_field: "sentiment_dict_score" # Adjust field name
+      use_cluster_boost: false
+      query_preprocessing: false
+      top_k: 100
+      metrics: ["precision@10", "map", "ndcg@10"]
+
+    sentiment_dict_ocr_cluster:
+      query_fields: ["text_content", "ocr_text"]
+      use_sentiment_filter: true
+      sentiment_field: "sentiment_dict_score" # Adjust field name
+      use_cluster_boost: true
+      cluster_field: "cluster_id" # Adjust field name
+      query_preprocessing: false
+      top_k: 100
+      metrics: ["precision@10", "map", "ndcg@10"]
+
+    bert_ocr_cluster_queryprep:
+       query_fields: ["text_content", "ocr_text"]
+       use_sentiment_filter: true
+       sentiment_field: "sentiment_bert_label" # Adjust field name (e.g., 'positive'/'negative')
+       use_cluster_boost: true
+       cluster_field: "cluster_id" # Adjust field name
+       query_preprocessing: true
+       top_k: 100
+       metrics: ["precision@10", "map", "ndcg@10"]
+
+    # Add configurations corresponding to all evaluation notebooks (0-6)
+
+# --- Plotting Parameters ---
+plotting:
+  # Define plots to generate
+  plots:
+    precision_comparison:
+      metric: "precision@10"
+      configs_to_compare: ["baseline", "baseline_ocr", "sentiment_dict_ocr", "sentiment_dict_ocr_cluster", "bert_ocr_cluster_queryprep"]
+      output_filename: "precision_comparison.png"
+
+    map_comparison:
+      metric: "map"
+      configs_to_compare: ["baseline", "baseline_ocr", "sentiment_dict_ocr", "sentiment_dict_ocr_cluster", "bert_ocr_cluster_queryprep"]
+      output_filename: "map_comparison.png"
+
