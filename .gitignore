@@ -1,3 +1,88 @@
-/data/
+# --- Python cache and bytecode ---
 __pycache__/
-pytest.ini
+*.pyc
+*.pyo
+*.pyd
+
+# --- Distribution / packaging ---
+build/
+dist/
+*.egg-info/
+*.egg
+wheels/
+*.tar.gz
+
+# --- Virtual environments ---
+.env/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+# Add others like .conda if created locally within the project (often managed globally)
+
+# --- Test artifacts ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+pytestdebug.log
+
+# --- IDE / Editor directories ---
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+nbproject/ # NetBeans
+
+# --- OS generated files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Secrets ---
+# Never commit secrets! Use environment variables or secure config management.
+*.env
+*.env.*
+secrets.yaml
+secrets.yml
+# Add any other files containing sensitive credentials
+
+# --- Project Specific ---
+
+# Data Files
+# Ignore all data by default. Consider un-ignoring specific essential raw data
+# using !/data/raw/your_essential_file.tsv if needed.
+/data/
+# Explicitly ignore processed data and intermediate files if /data/ isn't ignored
+# /data/processed/
+# /data/raw/images/ # If images are large and not meant for repo
+# /data/processed/ocr/
+# /data/processed/clustered_images/
+# *.pkl # If features are large
+
+# Model Files
+# Ignore directories where trained models are saved
+/models/bertiment_trained/
+# Consider ignoring downloaded base models if large and easily re-downloaded
+# /models/bertiment/
+
+# Results / Output
+/results/
+
+# Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Logs (if not covered above)
+*.log.*
+
+# Add any other project-specific generated files or large directories
