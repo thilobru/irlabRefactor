@@ -9,12 +9,12 @@ import logging
 import cv2 # OpenCV for image preprocessing
 import pytesseract # For OCR
 from PIL import Image # For handling images with pytesseract
-# Ensure safe_load_tsv is imported correctly
-from .utils import ensure_dir, get_image_id_from_path, safe_load_tsv
+# Ensure utils are imported correctly
+from .utils import ensure_dir, get_image_id_from_path, safe_load_tsv # get_image_id_from_path might be unused now
 
 
 # --- Text Preprocessing ---
-
+# (preprocess_text function remains the same as in preprocessing_py_fix_2)
 def preprocess_text(text, lemmatize=True, remove_stopwords=True, language='english'):
     """
     Applies tokenization, lowercasing, stopword removal, and lemmatization to text.
@@ -101,40 +101,35 @@ def process_titles_file(input_path, output_path, text_column='html_title', id_co
         logging.error(f"Error saving processed text to {output_path}: {e}")
         raise
 
+
 # --- OCR Processing ---
-# (OCR functions remain the same as in preprocessing_py_fix)
 
 def preprocess_image_for_ocr(image_path, grayscale=True, threshold=True, remove_noise=True):
     """Applies preprocessing steps to an image before OCR."""
+    # (Function remains the same as in preprocessing_py_fix_2)
     try:
         img = cv2.imread(image_path)
         if img is None:
             logging.warning(f"Could not read image: {image_path}")
             return None
-
         processed_img = img
-
         if grayscale:
             processed_img = cv2.cvtColor(processed_img, cv2.COLOR_BGR2GRAY)
             logging.debug(f"Applied grayscale to {image_path}")
-
         if threshold:
             _, processed_img = cv2.threshold(processed_img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
             logging.debug(f"Applied thresholding to {image_path}")
-
         if remove_noise:
             processed_img = cv2.medianBlur(processed_img, 3)
             logging.debug(f"Applied noise removal to {image_path}")
-
         return processed_img
-
     except Exception as e:
         logging.error(f"Error preprocessing image {image_path}: {e}")
         return None
 
-
 def perform_ocr(image_path_or_cv2_img, lang='eng'):
     """Performs OCR using Tesseract."""
+    # (Function remains the same as in preprocessing_py_fix_2)
     try:
         if isinstance(image_path_or_cv2_img, str):
              img_for_ocr = Image.open(image_path_or_cv2_img)
@@ -143,11 +138,9 @@ def perform_ocr(image_path_or_cv2_img, lang='eng'):
                  img_for_ocr = Image.fromarray(image_path_or_cv2_img)
              else: # Color (BGR)
                  img_for_ocr = Image.fromarray(cv2.cvtColor(image_path_or_cv2_img, cv2.COLOR_BGR2RGB))
-
         text = pytesseract.image_to_string(img_for_ocr, lang=lang)
         logging.debug(f"OCR successful for image (lang={lang}). Text length: {len(text)}")
         return text.strip()
-
     except pytesseract.TesseractNotFoundError:
         logging.error("Tesseract is not installed or not in your PATH. Please install Tesseract.")
         raise
@@ -158,43 +151,82 @@ def perform_ocr(image_path_or_cv2_img, lang='eng'):
 
 def run_ocr_on_directory(image_dir, output_dir, lang='eng', apply_preprocessing=True, **kwargs):
     """
-    Runs OCR on all images in a directory and saves results to individual text files.
+    Runs OCR on all images found recursively within image_dir and saves results
+    to individual text files named after the image's parent directory ID.
     kwargs are passed to preprocess_image_for_ocr.
     """
     ensure_dir(output_dir)
     if not os.path.isdir(image_dir):
         logging.error(f"Image directory not found: {image_dir}")
-        return
-
-    image_paths = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp'))]
-    logging.info(f"Found {len(image_paths)} images for OCR in {image_dir}")
+        return # Stop if input directory doesn't exist
 
     processed_count = 0
     error_count = 0
-    for img_path in image_paths:
-        image_id = get_image_id_from_path(img_path)
-        output_txt_path = os.path.join(output_dir, f"{image_id}.txt")
+    images_found = 0
+    # Define common image extensions
+    image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.webp', '.tiff')
 
-        try:
-            if apply_preprocessing:
-                preprocessed_img = preprocess_image_for_ocr(img_path, **kwargs)
-                if preprocessed_img is None:
-                    logging.warning(f"Skipping OCR for {img_path} due to preprocessing error.")
+    logging.info(f"Recursively searching for images in {image_dir}...")
+
+    # Use os.walk to traverse the directory tree
+    for root, dirs, files in os.walk(image_dir):
+        # Skip the root directory itself if it's the base image_dir,
+        # unless images are also directly in the root
+        # if root == image_dir:
+        #     continue # Or process files here if needed
+
+        for filename in files:
+            if filename.lower().endswith(image_extensions):
+                images_found += 1
+                image_path = os.path.join(root, filename)
+
+                # *** Extract ID from the parent directory name ***
+                try:
+                    # Assumes the ID is the name of the directory containing the image file
+                    image_id = os.path.basename(root)
+                    if not image_id: # Should not happen with valid paths from os.walk
+                         logging.warning(f"Could not extract valid ID from path root: {root}. Skipping {image_path}")
+                         error_count += 1
+                         continue
+                except Exception as e:
+                    logging.warning(f"Error extracting ID from path root '{root}': {e}. Skipping {image_path}")
                     error_count += 1
                     continue
-                ocr_text = perform_ocr(preprocessed_img, lang=lang)
-            else:
-                ocr_text = perform_ocr(img_path, lang=lang)
 
-            with open(output_txt_path, 'w', encoding='utf-8') as f:
-                f.write(ocr_text)
-            logging.debug(f"Saved OCR text for {image_id} to {output_txt_path}")
-            processed_count += 1
+                output_txt_path = os.path.join(output_dir, f"{image_id}.txt")
 
-        except Exception as e:
-            logging.error(f"Failed OCR for {img_path}: {e}")
-            error_count += 1
-            with open(output_txt_path, 'w', encoding='utf-8') as f:
-                f.write("")
+                # Avoid reprocessing if output already exists? Optional check.
+                # if os.path.exists(output_txt_path):
+                #     logging.debug(f"Output {output_txt_path} already exists. Skipping OCR.")
+                #     continue
 
-    logging.info(f"OCR processing finished. Processed: {processed_count}, Errors: {error_count}")
+                logging.debug(f"Processing image: {image_path} (ID: {image_id})")
+                try:
+                    if apply_preprocessing:
+                        preprocessed_img = preprocess_image_for_ocr(image_path, **kwargs)
+                        if preprocessed_img is None:
+                            logging.warning(f"Skipping OCR for {image_path} (ID: {image_id}) due to preprocessing error.")
+                            error_count += 1
+                            continue # Skip this image
+                        ocr_text = perform_ocr(preprocessed_img, lang=lang)
+                    else:
+                        ocr_text = perform_ocr(image_path, lang=lang)
+
+                    # Save the OCR text
+                    with open(output_txt_path, 'w', encoding='utf-8') as f:
+                        f.write(ocr_text)
+                    logging.debug(f"Saved OCR text for {image_id} to {output_txt_path}")
+                    processed_count += 1
+
+                except Exception as e:
+                    logging.error(f"Failed OCR for {image_path} (ID: {image_id}): {e}")
+                    error_count += 1
+                    # Optionally write an empty file or skip
+                    with open(output_txt_path, 'w', encoding='utf-8') as f:
+                        f.write("") # Write empty file on error
+
+    logging.info(f"Image search complete. Found: {images_found} images.")
+    logging.info(f"OCR processing finished. Processed: {processed_count}, Errors/Skipped: {error_count}")
+
+# Optional: Add function to combine individual OCR .txt files into a single TSV
+# def combine_ocr_results(ocr_dir, output_tsv_path): ...
