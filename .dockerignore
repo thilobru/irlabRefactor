@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.venv/
+venv/
+env/
+.env/
+tests/
+*.log
+data/ # Exclude large data from image if not needed at runtime
+results/
+models/ # Exclude models if large/downloaded separately
+.pytest_cache/
+.coverage
+htmlcov/
+# Add any other files/dirs to exclude
