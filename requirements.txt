@@ -11,7 +11,7 @@ pyyaml>=6.0
 elasticsearch>=8.0.0,<9.0.0 # Or version matching your cluster
 
 # Text Processing & Sentiment
-afinn>=0.1 # Added dependency
+afinn>=0.1
 
 # BERT & Deep Learning
 tensorflow>=2.8.0 # Or torch if using PyTorch version of transformers
@@ -22,6 +22,9 @@ datasets # Often used with transformers, e.g., for IMDB training dataset
 opencv-python-headless>=4.5.0 # Use headless if no GUI needed
 pytesseract>=0.3.8
 Pillow>=9.0.0
+
+# Testing
+pytest>=7.0.0 # Added pytest
 
 # Jupyter (Optional - if running notebooks)
 # jupyterlab>=3.0.0
